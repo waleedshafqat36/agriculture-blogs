@@ -1,0 +1,211 @@
+import ConnectDB from "@/lib/db";
+import Blog from "@/models/blog";
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
+
+
+export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  try {
+    const { slug } = await params;
+    const { author, text, authorId } = await req.json();
+
+    if (!author || !text) {
+      return NextResponse.json(
+        { message: "Author and text are required" },
+        { status: 400 }
+      );
+    }
+
+    await ConnectDB();
+
+    // Search by either slug or slugUrdu to support both languages
+    const blog = await Blog.findOne({ 
+      $or: [
+        { slug: slug },
+        { slugUrdu: slug }
+      ]
+    });
+    
+    if (!blog) {
+      return NextResponse.json({ message: "Blog not found" }, { status: 404 });
+    }
+
+    const newComment = {
+      _id: new mongoose.Types.ObjectId(),
+      author: author.trim(),
+      authorId: authorId || null,
+      text: text.trim(),
+      createdAt: new Date(),
+      likes: 0,
+      dislikes: 0,
+      likedBy: [],
+      dislikedBy: []
+    };
+
+    if (!blog.comments) {
+      blog.comments = [];
+    }
+
+    blog.comments.push(newComment);
+    // Update commentCount to match actual array length
+    blog.commentCount = blog.comments.length;
+    blog.markModified('comments');
+    blog.markModified('commentCount');
+    await blog.save();
+
+    // Convert to plain object to ensure proper serialization
+    const updatedBlog = await Blog.findOne({ 
+      $or: [
+        { slug: slug },
+        { slugUrdu: slug }
+      ]
+    }).lean();
+
+    return NextResponse.json(
+      {
+        success: true,
+        comment: newComment,
+        comments: updatedBlog?.comments || [],
+        commentCount: updatedBlog?.comments ? updatedBlog.comments.length : 0
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  try {
+    const { slug } = await params;
+
+    await ConnectDB();
+
+    const blog = await Blog.findOne({ 
+      $or: [
+        { slug: slug },
+        { slugUrdu: slug }
+      ]
+    }).lean();
+    if (!blog) {
+      return NextResponse.json({ message: "Blog not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        comments: blog.comments || []
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+// Updated code ends here
+export async function PUT(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  try {
+  const { slug } = await params;
+  const {commentId, text} = await req.json();
+  console.log("Updating comment:", commentId, text);
+  
+  await ConnectDB();
+
+  const blog = await Blog.findOne({ 
+    $or: [
+      { slug: slug },
+      { slugUrdu: slug }
+    ]
+  });
+  if (!blog) {
+    return NextResponse.json({ message: "Blog not found" }, { status: 404 });
+  }
+
+  const commentIndex = blog.comments.findIndex((comment: any) => comment._id.toString() === commentId);
+  if (commentIndex === -1) {
+    return NextResponse.json({ message: "Comment not found" }, { status: 404 });
+  }
+
+  blog.comments[commentIndex].text = text;
+  blog.markModified('comments');
+  blog.markModified('commentCount');
+  await blog.save();
+
+  return NextResponse.json({ message: "Comment updated successfully" });
+  } catch (error) { 
+    console.error("Error updating comment:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  try {
+    const { slug } = await params;
+    const { commentId } = await req.json();
+
+    if (!commentId) {
+      return NextResponse.json(
+        { message: "Comment ID is required" },
+        { status: 400 }
+      );
+    }
+
+    await ConnectDB();
+
+    const blog = await Blog.findOne({ 
+      $or: [
+        { slug: slug },
+        { slugUrdu: slug }
+      ]
+    });
+    if (!blog) {
+      return NextResponse.json({ message: "Blog not found" }, { status: 404 });
+    }
+
+    const commentIndex = blog.comments.findIndex((comment: any) => comment._id.toString() === commentId);
+    if (commentIndex === -1) {
+      return NextResponse.json({ message: "Comment not found" }, { status: 404 });
+    }
+
+    blog.comments.splice(commentIndex, 1);
+    // Sync commentCount to actual array length
+    blog.commentCount = blog.comments.length;
+    blog.markModified('comments');
+    blog.markModified('commentCount');
+    await blog.save();
+
+    const updatedBlog = await Blog.findOne({ 
+      $or: [
+        { slug: slug },
+        { slugUrdu: slug }
+      ]
+    }).lean();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Comment deleted successfully",
+        comments: updatedBlog?.comments || [],
+        commentCount: updatedBlog?.comments ? updatedBlog.comments.length : 0
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
