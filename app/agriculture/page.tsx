@@ -65,7 +65,7 @@ const AgricultureBlog = () => {
           <h2 className="text-3xl font-bold mb-2">Our Agriculture Resources</h2>
           <p className="text-zinc-600 text-sm mb-12 max-w-2xl">
             Discover comprehensive agricultural guides, farming techniques, crop management strategies, and sustainable farming practices for modern agriculture.
-
+</p>
         <div className="grid md:grid-cols-3 gap-8">
           {[1, 2, 3].map((item) => (
             <div key={item} className="group cursor-pointer">

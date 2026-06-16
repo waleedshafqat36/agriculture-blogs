@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { connectDB } from "@/lib/db";
+import  connectDB  from "@/lib/db";
 import Blog from "@/models/blog";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
