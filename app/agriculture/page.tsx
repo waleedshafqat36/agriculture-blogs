@@ -136,6 +136,7 @@ const AgricultureBlog = () => {
         <p className="text-center text-zinc-600 text-xs mt-8">© 2026 Agrob. All Rights Reserved.</p>
       </footer>
     </div>
+    </>
   );
 };
 
