@@ -17,10 +17,10 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   experimental: {
-    optimizationPackages: ["@tiptap/react", "@tiptap/starter-kit"],
+    optimizePackageImports: ["@tiptap/react", "@tiptap/starter-kit"],
   },
   compress: true,
-  swcMinify: true,
+  
   productionBrowserSourceMaps: false,
   reactStrictMode: true,
   httpAgentOptions: {
